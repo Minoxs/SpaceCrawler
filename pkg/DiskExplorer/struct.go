@@ -11,8 +11,6 @@ type DiskInfo struct {
 	IsExplored bool
 	Size       uint64
 	Children   []DiskInfo
-
-	expanded bool
 }
 
 func (d *DiskInfo) Prefix() string {
