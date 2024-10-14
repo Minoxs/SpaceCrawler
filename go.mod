@@ -1,3 +1,3 @@
-module github.com/minoxs/DiskExplorer
+module github.com/minoxs/SpaceCrawler
 
 go 1.21

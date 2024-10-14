@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/minoxs/DiskExplorer/pkg/DiskExplorer"
+	"github.com/minoxs/SpaceCrawler/pkg/DiskExplorer"
 )
 
 func main() {
