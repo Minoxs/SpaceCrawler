@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 
-	"disk-usage/pkg/DiskExplorer"
+	"github.com/minoxs/DiskExplorer/pkg/DiskExplorer"
 )
 
 func main() {
