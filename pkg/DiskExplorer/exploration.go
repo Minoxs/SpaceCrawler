@@ -28,6 +28,7 @@ func Map(dir string) (directory DiskInfo) {
 
 		directory.addChild(child)
 		directory.Size += child.Size
+		directory.IsExplored = directory.IsExplored && child.IsExplored
 	}
 
 	return
@@ -42,32 +43,26 @@ func (d *DiskInfo) addChild(directory DiskInfo) {
 }
 
 func (d *DiskInfo) Expand() *DiskInfo {
+	if d.IsExplored {
+		return d
+	}
+	d.IsExplored = true
+
 	for i, child := range d.Children {
-		if child.IsExplored {
-			if child.IsDir {
-				var size = child.Size
-				d.Size += child.Expand().Size - size
-			}
+		if !child.IsDir || child.IsExplored {
 			continue
 		}
 
-		child = Map(d.Name + "/" + child.Name)
+		var size = child.Size
+		if len(child.Children) == 0 {
+			child = Map(d.Name + "/" + child.Name)
+		} else {
+			child = *child.Expand()
+		}
 		d.Children[i] = child
-		d.Size += child.Size
+
+		d.IsExplored = d.IsExplored && child.IsExplored
+		d.Size += child.Size - size
 	}
 	return d
-}
-
-func (d *DiskInfo) childrenExplored() bool {
-	for i := 0; i < len(d.Children); i++ {
-		if !d.Children[i].FullyExplored() {
-			return false
-		}
-	}
-	return true
-}
-
-func (d *DiskInfo) FullyExplored() bool {
-	// TODO : HAVE THIS AS A PRE-CALCULATED FIELD
-	return d.IsExplored && d.childrenExplored()
 }

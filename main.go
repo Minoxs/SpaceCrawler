@@ -8,14 +8,13 @@ import (
 
 func main() {
 	var dir = DiskExplorer.Map(".")
-
 	log.Println("\n", dir.String())
 
 	for {
 		dir.Expand()
 		log.Println("Explored")
 		log.Println("\n", dir.String())
-		if dir.FullyExplored() {
+		if dir.IsExplored {
 			break
 		}
 	}
