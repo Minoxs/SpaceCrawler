@@ -1,6 +1,7 @@
 package DiskExplorer
 
 import (
+	"log"
 	"os"
 )
 
@@ -8,14 +9,18 @@ import (
 // This will list out all the contents of the given directory and no more
 // Call DiskInfo.Expand to map out the lower layers of the tree
 func Map(dir string) (directory DiskInfo) {
-	var files, err = os.ReadDir(dir)
-	panicOnError(err)
-
 	directory = DiskInfo{
 		Name:       dir,
 		IsDir:      true,
 		IsExplored: true,
 		Size:       0,
+	}
+
+	var files, err = os.ReadDir(dir)
+	// panicOnError(err)
+	if err != nil {
+		log.Println(err)
+		return
 	}
 
 	for _, file := range files {
@@ -27,6 +32,7 @@ func Map(dir string) (directory DiskInfo) {
 			IsExplored: !file.IsDir(),
 			Size:       uint64(info.Size()),
 			Children:   []DiskInfo{},
+			Mode:       info.Mode(),
 		}
 
 		directory.addChild(child)

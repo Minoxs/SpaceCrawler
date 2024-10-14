@@ -2,6 +2,7 @@ package DiskExplorer
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -11,6 +12,7 @@ type DiskInfo struct {
 	IsExplored bool
 	Size       uint64
 	Children   []DiskInfo
+	Mode       os.FileMode
 }
 
 func (d *DiskInfo) Prefix() string {
@@ -27,7 +29,7 @@ func (d *DiskInfo) Prefix() string {
 }
 
 func (d *DiskInfo) stringDepth(depth int) (str string) {
-	str = fmt.Sprintf("%s %d %s\n", d.Prefix(), d.Size, d.Name)
+	str = fmt.Sprintf("%s %s %d %s\n", d.Prefix(), d.Mode, d.Size, d.Name)
 
 	for _, child := range d.Children {
 		str += strings.Repeat("\t", depth) + child.stringDepth(depth+1)
