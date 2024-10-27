@@ -21,7 +21,7 @@ func main() {
 		var i = 0
 		for {
 			i += 1
-			dir.Expand()
+			dir.Deepen()
 			log.Println("Exploration done", i)
 			select {
 			case <-cancel:

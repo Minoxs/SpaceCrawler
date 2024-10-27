@@ -8,13 +8,13 @@ import (
 
 // Map returns the disk info for a particular directory
 // This will list out all the contents of the given directory and no more
-// Call DiskInfo.Expand to map out the lower layers of the tree
+// Call DiskInfo.Deepen to map out the lower layers of the tree
 func Map(dir string) (directory DiskInfo) {
 	var path, _ = filepath.Abs(dir)
 
 	directory = DiskInfo{
 		Path:       path,
-		Name:       dir,
+		Name:       filepath.Base(path),
 		IsDir:      true,
 		IsExplored: true,
 		Size:       0,
@@ -56,16 +56,18 @@ func (d *DiskInfo) addChild(directory DiskInfo) {
 	}
 }
 
-// Expand will recursively expand the tree further down
+// Deepen will recursively expand the tree further down
 // Only expands 1 layer at a time
-func (d *DiskInfo) Expand() *DiskInfo {
+func (d *DiskInfo) Deepen() *DiskInfo {
 	if d.IsExplored {
 		return d
 	}
 	d.IsExplored = true
 
 	if len(d.Children) == 0 {
-		*d = Map(d.Path)
+		var m = Map(d.Path)
+		d.Size = m.Size
+		d.Children = m.Children
 		return d
 	}
 
@@ -77,7 +79,7 @@ func (d *DiskInfo) Expand() *DiskInfo {
 		if len(child.Children) == 0 {
 			d.Children[i] = Map(child.Path)
 		} else {
-			d.Children[i].Expand()
+			d.Children[i].Deepen()
 		}
 
 		d.Size += d.Children[i].Size - child.Size
