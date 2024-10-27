@@ -3,13 +3,17 @@ package DiskExplorer
 import (
 	"log"
 	"os"
+	"path/filepath"
 )
 
 // Map returns the disk info for a particular directory
 // This will list out all the contents of the given directory and no more
 // Call DiskInfo.Expand to map out the lower layers of the tree
 func Map(dir string) (directory DiskInfo) {
+	var path, _ = filepath.Abs(dir)
+
 	directory = DiskInfo{
+		Path:       path,
 		Name:       dir,
 		IsDir:      true,
 		IsExplored: true,
@@ -17,7 +21,6 @@ func Map(dir string) (directory DiskInfo) {
 	}
 
 	var files, err = os.ReadDir(dir)
-	// panicOnError(err)
 	if err != nil {
 		log.Println(err)
 		return
@@ -27,6 +30,7 @@ func Map(dir string) (directory DiskInfo) {
 		var info, _ = file.Info()
 
 		var child = DiskInfo{
+			Path:       filepath.Join(path, file.Name()),
 			Name:       file.Name(),
 			IsDir:      file.IsDir(),
 			IsExplored: !file.IsDir(),
@@ -60,13 +64,18 @@ func (d *DiskInfo) Expand() *DiskInfo {
 	}
 	d.IsExplored = true
 
+	if len(d.Children) == 0 {
+		*d = Map(d.Path)
+		return d
+	}
+
 	for i, child := range d.Children {
 		if !child.IsDir || child.IsExplored {
 			continue
 		}
 
 		if len(child.Children) == 0 {
-			d.Children[i] = Map(d.Name + "/" + child.Name)
+			d.Children[i] = Map(child.Path)
 		} else {
 			d.Children[i].Expand()
 		}
