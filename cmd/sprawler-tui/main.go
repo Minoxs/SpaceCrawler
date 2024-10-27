@@ -1,96 +1,65 @@
 package main
 
 import (
-	"errors"
-	"fmt"
-	"os"
-	"strings"
-	"time"
+	"github.com/gdamore/tcell/v2"
+	"github.com/rivo/tview"
 
-	"github.com/charmbracelet/bubbles/filepicker"
-	tea "github.com/charmbracelet/bubbletea"
+	"github.com/minoxs/SpaceCrawler/pkg/DiskExplorer"
 )
 
-type model struct {
-	filepicker   filepicker.Model
-	selectedFile string
-	quitting     bool
-	err          error
-}
+func main() {
+	var app = tview.NewApplication()
+	var disk = DiskExplorer.Map(".")
+	var root = tview.NewTreeNode(disk.Path).SetColor(tcell.ColorRed).SetReference(&disk)
+	var tree = tview.NewTreeView().SetRoot(root).SetCurrentNode(root)
 
-type clearErrorMsg struct{}
+	travel := func(target *tview.TreeNode) {
+		var info = target.GetReference().(*DiskExplorer.DiskInfo)
 
-func clearErrorAfter(t time.Duration) tea.Cmd {
-	return tea.Tick(
-		t, func(_ time.Time) tea.Msg {
-			return clearErrorMsg{}
+		for i, child := range info.Children {
+			var node = tview.
+				NewTreeNode(child.String()).
+				SetReference(&info.Children[i]).
+				SetSelectable(child.IsDir)
+
+			if child.IsDir {
+				if child.IsExplored {
+					node.SetColor(tcell.ColorGreen)
+				} else {
+					node.SetColor(tcell.ColorOrangeRed)
+				}
+			} else {
+				node.SetColor(tcell.ColorBlue)
+			}
+
+			target.AddChild(node)
+		}
+	}
+
+	// Add the current directory to the root node.
+	travel(root)
+
+	// If a directory was selected, open it.
+	tree.SetSelectedFunc(
+		func(node *tview.TreeNode) {
+			var info = node.GetReference().(*DiskExplorer.DiskInfo)
+			if info == &disk {
+				return
+			}
+
+			var children = node.GetChildren()
+			if len(children) == 0 {
+				info.Expand()
+				travel(node)
+				node.SetExpanded(true)
+			} else {
+				// Collapse if visible, expand if collapsed.
+				node.SetExpanded(!node.IsExpanded())
+			}
 		},
 	)
-}
 
-func (m model) Init() tea.Cmd {
-	return m.filepicker.Init()
-}
-
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
-			m.quitting = true
-			return m, tea.Quit
-		}
-	case clearErrorMsg:
-		m.err = nil
+	if err := app.SetRoot(tree, true).EnableMouse(true).Run(); err != nil {
+		panic(err)
 	}
-
-	var cmd tea.Cmd
-	m.filepicker, cmd = m.filepicker.Update(msg)
-
-	// Did the user select a file?
-	if didSelect, path := m.filepicker.DidSelectFile(msg); didSelect {
-		// Get the path of the selected file.
-		m.selectedFile = path
-	}
-
-	// Did the user select a disabled file?
-	// This is only necessary to display an error to the user.
-	if didSelect, path := m.filepicker.DidSelectDisabledFile(msg); didSelect {
-		// Let's clear the selectedFile and display an error.
-		m.err = errors.New(path + " is not valid.")
-		m.selectedFile = ""
-		return m, tea.Batch(cmd, clearErrorAfter(2*time.Second))
-	}
-
-	return m, cmd
-}
-
-func (m model) View() string {
-	if m.quitting {
-		return ""
-	}
-	var s strings.Builder
-	s.WriteString("\n  ")
-	if m.err != nil {
-		s.WriteString(m.filepicker.Styles.DisabledFile.Render(m.err.Error()))
-	} else if m.selectedFile == "" {
-		s.WriteString("Pick a file:")
-	} else {
-		s.WriteString("Selected file: " + m.filepicker.Styles.Selected.Render(m.selectedFile))
-	}
-	s.WriteString("\n\n" + m.filepicker.View() + "\n")
-	return s.String()
-}
-
-func main() {
-	fp := filepicker.New()
-	fp.AllowedTypes = []string{".mod", ".sum", ".go", ".txt", ".md"}
-	fp.CurrentDirectory, _ = os.UserHomeDir()
-
-	m := model{
-		filepicker: fp,
-	}
-	tm, _ := tea.NewProgram(&m).Run()
-	mm := tm.(model)
-	fmt.Println("\n  You selected: " + m.filepicker.Styles.Selected.Render(mm.selectedFile) + "\n")
 }

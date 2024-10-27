@@ -44,5 +44,5 @@ func main() {
 	}
 
 	log.SetOutput(os.Stdout)
-	log.Println("\n", dir.String())
+	log.Println("\n", dir.Render())
 }
