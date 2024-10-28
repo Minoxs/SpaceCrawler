@@ -14,7 +14,7 @@ func update(node *tview.TreeNode) {
 
 	node.SetText(info.String())
 	if info.IsDir {
-		if info.Explored {
+		if info.Explored() {
 			node.SetColor(tcell.ColorGreen)
 		} else {
 			node.SetColor(tcell.ColorOrangeRed)
@@ -28,6 +28,7 @@ func update(node *tview.TreeNode) {
 	}
 }
 
+// TODO make travel work recursively without clearing the children every time
 func travel(target *tview.TreeNode) {
 	target.ClearChildren()
 	update(target)
@@ -42,6 +43,7 @@ func travel(target *tview.TreeNode) {
 		update(node)
 		node.SetExpanded(false)
 		target.AddChild(node)
+		travel(node)
 	}
 }
 
@@ -55,8 +57,25 @@ func main() {
 	travel(root)
 
 	go func() {
-		time.Sleep(1 * time.Second)
-		update(root)
+		for {
+			time.Sleep(500 * time.Millisecond)
+			app.QueueUpdateDraw(
+				func() {
+					update(root)
+				},
+			)
+		}
+	}()
+
+	go func() {
+		for !disk.Explored() {
+			disk.Deepen()
+			app.QueueUpdateDraw(
+				func() {
+					travel(root)
+				},
+			)
+		}
 	}()
 
 	// If a directory was selected, open it.
@@ -67,9 +86,7 @@ func main() {
 				return
 			}
 
-			var children = node.GetChildren()
-			if len(children) == 0 {
-				info.Expand()
+			if info.Expand() {
 				travel(node)
 				node.SetExpanded(true)
 			} else {
