@@ -4,23 +4,34 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 )
 
 // Map returns the disk info for a particular directory
 // This will list out all the contents of the given directory and no more
 // Call DiskInfo.Deepen to map out the lower layers of the tree
-func Map(dir string) (directory DiskInfo) {
-	var path, _ = filepath.Abs(dir)
+func Map(path string) (directory DiskInfo) {
+	var abs, _ = filepath.Abs(path)
+	var info, _ = os.Stat(abs)
 
 	directory = DiskInfo{
-		Path:       path,
-		Name:       filepath.Base(path),
+		Path:       abs,
+		Name:       filepath.Base(abs),
 		IsDir:      true,
 		IsExplored: true,
 		Size:       0,
+		Children:   []DiskInfo{},
+		Mode:       info.Mode(),
 	}
 
-	var files, err = os.ReadDir(dir)
+	directory.explore()
+	return
+}
+
+func (d *DiskInfo) explore() {
+	d.IsExplored = true
+
+	var files, err = os.ReadDir(d.Path)
 	if err != nil {
 		log.Println(err)
 		return
@@ -30,7 +41,7 @@ func Map(dir string) (directory DiskInfo) {
 		var info, _ = file.Info()
 
 		var child = DiskInfo{
-			Path:       filepath.Join(path, file.Name()),
+			Path:       filepath.Join(d.Path, file.Name()),
 			Name:       file.Name(),
 			IsDir:      file.IsDir(),
 			IsExplored: !file.IsDir(),
@@ -39,12 +50,10 @@ func Map(dir string) (directory DiskInfo) {
 			Mode:       info.Mode(),
 		}
 
-		directory.addChild(child)
-		directory.Size += child.Size
-		directory.IsExplored = directory.IsExplored && child.IsExplored
+		d.addChild(child)
+		d.Size += child.Size
+		d.IsExplored = d.IsExplored && child.IsExplored
 	}
-
-	return
 }
 
 // addChild adds appends a new child to the end of the tree
@@ -56,34 +65,17 @@ func (d *DiskInfo) addChild(directory DiskInfo) {
 	}
 }
 
-// Deepen will recursively expand the tree further down
-// Only expands 1 layer at a time
-func (d *DiskInfo) Deepen() *DiskInfo {
+func (d *DiskInfo) addSize(size uint64) {
+	atomic.AddUint64(&d.Size, size)
+}
+
+func (d *DiskInfo) GetSize() uint64 {
+	return atomic.LoadUint64(&d.Size)
+}
+
+func (d *DiskInfo) Expand() {
 	if d.IsExplored {
-		return d
+		return
 	}
-	d.IsExplored = true
-
-	if len(d.Children) == 0 {
-		var m = Map(d.Path)
-		d.Size = m.Size
-		d.Children = m.Children
-		return d
-	}
-
-	for i, child := range d.Children {
-		if !child.IsDir || child.IsExplored {
-			continue
-		}
-
-		if len(child.Children) == 0 {
-			d.Children[i] = Map(child.Path)
-		} else {
-			d.Children[i].Deepen()
-		}
-
-		d.Size += d.Children[i].Size - child.Size
-		d.IsExplored = d.IsExplored && d.Children[i].IsExplored
-	}
-	return d
+	d.explore()
 }
