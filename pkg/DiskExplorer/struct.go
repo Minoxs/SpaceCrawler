@@ -30,9 +30,18 @@ func (d *DiskInfo) Prefix() string {
 	}
 }
 
+// FullPrefix returns the Prefix including Depth and Breadth information
+func (d *DiskInfo) FullPrefix() (s string) {
+	if d.IsDir {
+		return d.Prefix() + fmt.Sprintf(" D%d B%d", d.Depth(), d.Breadth())
+	} else {
+		return d.Prefix()
+	}
+}
+
 // String returns a string representation of the node
 func (d *DiskInfo) String() string {
-	return fmt.Sprintf("%s %s %d %s", d.Prefix(), d.Mode, d.Size(), d.Name)
+	return fmt.Sprintf("%s %s %d %s", d.FullPrefix(), d.Mode, d.Size(), d.Name)
 }
 
 // Render will return a string with the file tree representation
@@ -90,4 +99,22 @@ func (d *DiskInfo) Size() uint64 {
 	} else {
 		return d.size
 	}
+}
+
+// Depth calculates the maximum depth of a given node
+func (d *DiskInfo) Depth() int {
+	if !d.IsDir || !d.Expanded() {
+		return 0
+	}
+
+	var deep = 0
+	for i := 0; i < len(d.Children); i++ {
+		deep = max(deep, d.Children[i].Depth())
+	}
+	return 1 + deep
+}
+
+// Breadth calculates the breadth of a given node
+func (d *DiskInfo) Breadth() int {
+	return len(d.Children)
 }
