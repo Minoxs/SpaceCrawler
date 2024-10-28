@@ -14,7 +14,7 @@ func update(node *tview.TreeNode) {
 
 	node.SetText(info.String())
 	if info.IsDir {
-		if info.IsExplored {
+		if info.Explored {
 			node.SetColor(tcell.ColorGreen)
 		} else {
 			node.SetColor(tcell.ColorOrangeRed)

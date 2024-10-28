@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/minoxs/SpaceCrawler/pkg/DiskExplorer"
 )
@@ -19,11 +18,6 @@ func main() {
 	signal.Notify(cancel, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		time.Sleep(500 * time.Millisecond)
-		cancel <- syscall.SIGINT
-	}()
-
-	go func() {
 		var i = 0
 		for {
 			i += 1
@@ -34,7 +28,7 @@ func main() {
 				ready <- true
 				return
 			default:
-				if dir.IsExplored() {
+				if dir.Explored() {
 					ready <- true
 					return
 				}
@@ -43,7 +37,7 @@ func main() {
 	}()
 
 	<-ready
-	if dir.IsExplored() {
+	if dir.Explored() {
 		log.Println("Fully explored")
 	} else {
 		log.Println("Partial analysis")

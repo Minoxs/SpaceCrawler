@@ -9,6 +9,7 @@ import (
 // Map returns the disk info for a particular directory
 // This will list out all the contents of the given directory and no more
 // Call DiskInfo.Deepen to map out the lower layers of the tree
+// Use DiskInfo.Expand to expand specific nodes
 func Map(path string) (directory DiskInfo) {
 	var abs, _ = filepath.Abs(path)
 	var info, _ = os.Stat(abs)
@@ -16,12 +17,11 @@ func Map(path string) (directory DiskInfo) {
 	directory = DiskInfo{
 		Path:     abs,
 		Name:     filepath.Base(abs),
-		IsDir:    true,
-		Children: []DiskInfo{},
+		IsDir:    info.IsDir(),
+		Children: nil,
 		Mode:     info.Mode(),
 
-		isExplored: true,
-		size:       0,
+		size: 0,
 	}
 
 	directory.explore()
@@ -30,7 +30,7 @@ func Map(path string) (directory DiskInfo) {
 
 // explore will iterate over the directory and calculate its size
 func (d *DiskInfo) explore() {
-	d.isExplored = true
+	d.Children = []DiskInfo{}
 
 	var files, err = os.ReadDir(d.Path)
 	if err != nil {
@@ -45,11 +45,10 @@ func (d *DiskInfo) explore() {
 			Path:     filepath.Join(d.Path, file.Name()),
 			Name:     file.Name(),
 			IsDir:    file.IsDir(),
-			Children: []DiskInfo{},
+			Children: nil,
 			Mode:     info.Mode(),
 
-			isExplored: !file.IsDir(),
-			size:       uint64(info.Size()),
+			size: uint64(info.Size()),
 		}
 
 		d.addChild(child)
@@ -58,19 +57,16 @@ func (d *DiskInfo) explore() {
 
 // addChild adds appends a new child to the end of the tree
 func (d *DiskInfo) addChild(child DiskInfo) {
-	if d.Children == nil {
-		d.Children = []DiskInfo{child}
-	} else {
-		d.Children = append(d.Children, child)
-	}
+	d.Children = append(d.Children, child)
 }
 
 // Expand will explore a given node and populate its children
 // Returns whether it changed
 func (d *DiskInfo) Expand() bool {
-	if len(d.Children) > 0 || d.IsExplored() {
+	if d.Expanded() {
 		return false
 	}
+
 	d.explore()
 	return true
 }
