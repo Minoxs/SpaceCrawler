@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sync/atomic"
 )
 
 // Map returns the disk info for a particular directory
@@ -15,13 +14,14 @@ func Map(path string) (directory DiskInfo) {
 	var info, _ = os.Stat(abs)
 
 	directory = DiskInfo{
-		Path:       abs,
-		Name:       filepath.Base(abs),
-		IsDir:      true,
-		IsExplored: true,
-		Size:       0,
-		Children:   []DiskInfo{},
-		Mode:       info.Mode(),
+		Path:     abs,
+		Name:     filepath.Base(abs),
+		IsDir:    true,
+		Children: []DiskInfo{},
+		Mode:     info.Mode(),
+
+		isExplored: true,
+		size:       0,
 	}
 
 	directory.explore()
@@ -30,7 +30,7 @@ func Map(path string) (directory DiskInfo) {
 
 // explore will iterate over the directory and calculate its size
 func (d *DiskInfo) explore() {
-	d.IsExplored = true
+	d.isExplored = true
 
 	var files, err = os.ReadDir(d.Path)
 	if err != nil {
@@ -42,44 +42,33 @@ func (d *DiskInfo) explore() {
 		var info, _ = file.Info()
 
 		var child = DiskInfo{
-			Path:       filepath.Join(d.Path, file.Name()),
-			Name:       file.Name(),
-			IsDir:      file.IsDir(),
-			IsExplored: !file.IsDir(),
-			Size:       uint64(info.Size()),
-			Children:   []DiskInfo{},
-			Mode:       info.Mode(),
+			Path:     filepath.Join(d.Path, file.Name()),
+			Name:     file.Name(),
+			IsDir:    file.IsDir(),
+			Children: []DiskInfo{},
+			Mode:     info.Mode(),
+
+			isExplored: !file.IsDir(),
+			size:       uint64(info.Size()),
 		}
 
 		d.addChild(child)
-		d.Size += child.Size
-		d.IsExplored = d.IsExplored && child.IsExplored
 	}
 }
 
 // addChild adds appends a new child to the end of the tree
-func (d *DiskInfo) addChild(directory DiskInfo) {
+func (d *DiskInfo) addChild(child DiskInfo) {
 	if d.Children == nil {
-		d.Children = []DiskInfo{directory}
+		d.Children = []DiskInfo{child}
 	} else {
-		d.Children = append(d.Children, directory)
+		d.Children = append(d.Children, child)
 	}
-}
-
-// addSize will atomically add the size to the size of the node
-func (d *DiskInfo) addSize(size uint64) {
-	atomic.AddUint64(&d.Size, size)
-}
-
-// GetSize will atomically get the size of the node
-func (d *DiskInfo) GetSize() uint64 {
-	return atomic.LoadUint64(&d.Size)
 }
 
 // Expand will explore a given node and populate its children
 // Returns whether it changed
 func (d *DiskInfo) Expand() bool {
-	if d.IsExplored || len(d.Children) > 0 {
+	if len(d.Children) > 0 || d.IsExplored() {
 		return false
 	}
 	d.explore()
