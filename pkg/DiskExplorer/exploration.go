@@ -28,6 +28,7 @@ func Map(path string) (directory DiskInfo) {
 	return
 }
 
+// explore will iterate over the directory and calculate its size
 func (d *DiskInfo) explore() {
 	d.IsExplored = true
 
@@ -65,17 +66,31 @@ func (d *DiskInfo) addChild(directory DiskInfo) {
 	}
 }
 
+// addSize will atomically add the size to the size of the node
 func (d *DiskInfo) addSize(size uint64) {
 	atomic.AddUint64(&d.Size, size)
 }
 
+// GetSize will atomically get the size of the node
 func (d *DiskInfo) GetSize() uint64 {
 	return atomic.LoadUint64(&d.Size)
 }
 
-func (d *DiskInfo) Expand() {
-	if d.IsExplored {
-		return
+// Expand will explore a given node and populate its children
+// Returns whether it changed
+func (d *DiskInfo) Expand() bool {
+	if d.IsExplored || len(d.Children) > 0 {
+		return false
 	}
 	d.explore()
+	return true
+}
+
+// Deepen will deepen the exploration by 1 layer
+func (d *DiskInfo) Deepen() {
+	if !d.Expand() {
+		for i := 0; i < len(d.Children); i++ {
+			d.Children[i].Deepen()
+		}
+	}
 }
