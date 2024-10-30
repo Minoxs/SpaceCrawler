@@ -1,8 +1,6 @@
 package main
 
 import (
-	"time"
-
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 
@@ -28,22 +26,37 @@ func update(node *tview.TreeNode) {
 	}
 }
 
-// TODO make travel work recursively without clearing the children every time
 func travel(target *tview.TreeNode) {
-	target.ClearChildren()
-	update(target)
+	// update(target)
 
 	var info = target.GetReference().(*DiskExplorer.DiskInfo)
+	if len(info.Children) == len(target.GetChildren()) {
+		return
+	}
+
+	target.ClearChildren()
 	for i, child := range info.Children {
 		var node = tview.
 			NewTreeNode("").
 			SetReference(&info.Children[i]).
 			SetSelectable(child.IsDir)
 
-		update(node)
 		node.SetExpanded(false)
 		target.AddChild(node)
-		travel(node)
+
+		// update(node)
+		// travel(node)
+	}
+}
+
+func expand(target *tview.TreeNode) {
+	target.GetReference().(*DiskExplorer.DiskInfo).Expand()
+	travel(target)
+
+	for _, node := range target.GetChildren() {
+		if node.GetReference().(*DiskExplorer.DiskInfo).IsDir {
+			go expand(node)
+		}
 	}
 }
 
@@ -53,32 +66,16 @@ func main() {
 	var root = tview.NewTreeNode(disk.Path).SetColor(tcell.ColorRed).SetReference(&disk)
 	var tree = tview.NewTreeView().SetRoot(root).SetCurrentNode(root)
 
-	// Add the current directory to the root node.
-	travel(root)
+	go expand(root)
 
-	go func() {
-		for {
-			time.Sleep(500 * time.Millisecond)
-			app.QueueUpdateDraw(
-				func() {
-					update(root)
-				},
-			)
-		}
-	}()
+	app.SetBeforeDrawFunc(
+		func(screen tcell.Screen) bool {
+			screen.Clear()
+			update(root)
+			return false
+		},
+	)
 
-	go func() {
-		for !disk.Explored() {
-			disk.Deepen()
-			app.QueueUpdateDraw(
-				func() {
-					travel(root)
-				},
-			)
-		}
-	}()
-
-	// If a directory was selected, open it.
 	tree.SetSelectedFunc(
 		func(node *tview.TreeNode) {
 			var info = node.GetReference().(*DiskExplorer.DiskInfo)
