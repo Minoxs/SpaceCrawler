@@ -1,13 +1,15 @@
 package main
 
 import (
+	"time"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 
 	"github.com/minoxs/SpaceCrawler/pkg/DiskExplorer"
 )
 
-func update(node *tview.TreeNode) {
+func setNodeInfo(node *tview.TreeNode) {
 	var info = node.GetReference().(*DiskExplorer.DiskInfo)
 
 	node.SetText(info.String())
@@ -20,15 +22,16 @@ func update(node *tview.TreeNode) {
 	} else {
 		node.SetColor(tcell.ColorBlue)
 	}
+}
 
+func update(node *tview.TreeNode) {
+	setNodeInfo(node)
 	for _, child := range node.GetChildren() {
 		update(child)
 	}
 }
 
 func travel(target *tview.TreeNode) {
-	// update(target)
-
 	var info = target.GetReference().(*DiskExplorer.DiskInfo)
 	if len(info.Children) == len(target.GetChildren()) {
 		return
@@ -43,9 +46,6 @@ func travel(target *tview.TreeNode) {
 
 		node.SetExpanded(false)
 		target.AddChild(node)
-
-		// update(node)
-		// travel(node)
 	}
 }
 
@@ -66,15 +66,25 @@ func main() {
 	var root = tview.NewTreeNode(disk.Path).SetColor(tcell.ColorRed).SetReference(&disk)
 	var tree = tview.NewTreeView().SetRoot(root).SetCurrentNode(root)
 
+	setNodeInfo(root)
 	go expand(root)
 
-	app.SetBeforeDrawFunc(
-		func(screen tcell.Screen) bool {
-			screen.Clear()
-			update(root)
-			return false
-		},
-	)
+	go func() {
+		for {
+			time.Sleep(100 * time.Millisecond)
+
+			var explored = disk.Explored()
+			app.QueueUpdateDraw(
+				func() {
+					update(root)
+				},
+			)
+
+			if explored {
+				return
+			}
+		}
+	}()
 
 	tree.SetSelectedFunc(
 		func(node *tview.TreeNode) {
