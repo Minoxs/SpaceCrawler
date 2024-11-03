@@ -13,14 +13,17 @@ func setNodeInfo(node *tview.TreeNode) {
 	var info = node.GetReference().(*DiskExplorer.DiskInfo)
 
 	node.SetText(info.String())
-	if info.IsDir {
-		if info.Explored() {
-			node.SetColor(tcell.ColorGreen)
-		} else {
-			node.SetColor(tcell.ColorOrangeRed)
-		}
-	} else {
+
+	// Color switch
+	switch {
+	case info.Denied():
+		node.SetColor(tcell.ColorOrange)
+	case !info.IsDir:
 		node.SetColor(tcell.ColorBlue)
+	case info.Explored():
+		node.SetColor(tcell.ColorGreen)
+	default:
+		node.SetColor(tcell.ColorRed)
 	}
 }
 

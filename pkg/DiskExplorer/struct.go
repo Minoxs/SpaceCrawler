@@ -12,7 +12,8 @@ type DiskInfo struct {
 	Children []DiskInfo
 	Mode     os.FileMode
 
-	size uint64
+	size   uint64
+	denied bool
 }
 
 // Explored will recursively check if the node is explored
@@ -72,4 +73,9 @@ func (d *DiskInfo) Depth() int {
 // Breadth calculates the breadth of a given node
 func (d *DiskInfo) Breadth() int {
 	return len(d.Children)
+}
+
+// Denied returns if access to the given node has been denied
+func (d *DiskInfo) Denied() bool {
+	return d.denied
 }

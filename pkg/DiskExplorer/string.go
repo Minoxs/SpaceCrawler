@@ -7,6 +7,10 @@ import (
 
 // Prefix returns a string prefix depending on the node type
 func (d *DiskInfo) Prefix() string {
+	if d.denied {
+		return "D"
+	}
+
 	if !d.IsDir {
 		return "F"
 	}
