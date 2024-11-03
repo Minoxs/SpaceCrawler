@@ -1,7 +1,6 @@
 package DiskExplorer
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 )
@@ -34,7 +33,6 @@ func (d *DiskInfo) explore() {
 
 	var files, err = os.ReadDir(d.Path)
 	if err != nil {
-		log.Println(err)
 		return
 	}
 
