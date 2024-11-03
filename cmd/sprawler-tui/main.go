@@ -62,9 +62,34 @@ func expand(target *tview.TreeNode) {
 
 func main() {
 	var app = tview.NewApplication()
+	app.EnableMouse(true).EnablePaste(false)
+
 	var disk = DiskExplorer.Map(".")
+
+	// var header = tview.NewFlex().SetDirection(tview.FlexColumn).
+	// 	AddItem(
+	// 		tview.NewTextView().SetText("Search: "), 8, 1, false,
+	// 	).
+	// 	AddItem(
+	// 		tview.NewTextArea().SetText("HERE", true), 0, 1, true,
+	// 	)
+	//
+	// var text = tview.NewTextView().
+	// 	SetDynamicColors(true).
+	// 	SetRegions(true).
+	// 	SetWrap(false)
+
 	var root = tview.NewTreeNode(disk.Path).SetColor(tcell.ColorRed).SetReference(&disk)
 	var tree = tview.NewTreeView().SetRoot(root).SetCurrentNode(root)
+	tree.SetBorder(true).SetTitle("Files")
+	app.SetRoot(tree, true)
+
+	// var box = tview.NewFlex().
+	// 	SetDirection(tview.FlexRow).
+	// 	AddItem(header, 1, 1, false).
+	// 	AddItem(tree, 0, 1, true).
+	// 	AddItem(text, 1, 1, false)
+	// app.SetRoot(box, true)
 
 	setNodeInfo(root)
 	go expand(root)
@@ -102,7 +127,19 @@ func main() {
 		},
 	)
 
-	if err := app.SetRoot(tree, true).EnableMouse(true).Run(); err != nil {
+	app.SetInputCapture(
+		func(event *tcell.EventKey) *tcell.EventKey {
+			switch event.Rune() {
+			case 'q', 'Q':
+				app.Stop()
+				return nil
+			}
+
+			return event
+		},
+	)
+
+	if err := app.Run(); err != nil {
 		panic(err)
 	}
 }
