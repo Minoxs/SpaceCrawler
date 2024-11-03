@@ -29,7 +29,7 @@ func (d *DiskInfo) FullPrefix() (s string) {
 
 // String returns a string representation of the node
 func (d *DiskInfo) String() string {
-	return fmt.Sprintf("%s %s %d %s", d.FullPrefix(), d.Mode, d.Size(), d.Name)
+	return fmt.Sprintf("%s %s %s %s", d.FullPrefix(), d.Mode, d.HumanSize(), d.Name)
 }
 
 // Render will return a string with the file tree representation
@@ -46,4 +46,20 @@ func (d *DiskInfo) stringDepth(depth int) (str string) {
 	}
 
 	return
+}
+
+// HumanSize returns the size in a human-readable format
+func (d *DiskInfo) HumanSize() string {
+	var s = float64(d.Size())
+
+	var (
+		idx  = 0
+		unit = []string{"B", "Kb", "Mb", "Gb", "Tb", "Pb"}
+	)
+
+	for ; s > 1024 && idx < len(unit); idx++ {
+		s /= 1024
+	}
+
+	return fmt.Sprintf("%.2f%s", s, unit[idx])
 }
