@@ -1,148 +1,94 @@
 package main
 
 import (
-	"time"
-
-	"github.com/gdamore/tcell/v2"
-	"github.com/rivo/tview"
-
-	"github.com/minoxs/SpaceCrawler/pkg/DiskExplorer"
+	"github.com/charmbracelet/bubbles/cursor"
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
+	tea "github.com/charmbracelet/bubbletea"
 )
 
-func setNodeInfo(node *tview.TreeNode) {
-	var info = node.GetReference().(*DiskExplorer.DiskInfo)
+type Bindings struct {
+	Quit key.Binding
+}
 
-	node.SetText(info.String())
+func (b *Bindings) ShortHelp() []key.Binding {
+	return []key.Binding{b.Quit}
+}
 
-	// Color switch
-	switch {
-	case info.Denied():
-		node.SetColor(tcell.ColorOrange)
-	case !info.IsDir:
-		node.SetColor(tcell.ColorBlue)
-	case info.Explored():
-		node.SetColor(tcell.ColorGreen)
-	default:
-		node.SetColor(tcell.ColorRed)
+func (b *Bindings) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		b.ShortHelp(),
 	}
 }
 
-func update(node *tview.TreeNode) {
-	setNodeInfo(node)
-	for _, child := range node.GetChildren() {
-		update(child)
+type TreeView struct {
+}
+
+func NewTreeView() *TreeView {
+	return &TreeView{}
+}
+
+func (t *TreeView) Update(msg tea.Msg) (*TreeView, tea.Cmd) {
+	return t, nil
+}
+
+func (t *TreeView) View() string {
+	return ""
+}
+
+type SpaceCrawler struct {
+	keys *Bindings
+	body *TreeView
+	help help.Model
+}
+
+func NewSpaceCrawler() *SpaceCrawler {
+
+	return &SpaceCrawler{
+		body: NewTreeView(),
+		help: help.New(),
+		keys: &Bindings{
+			Quit: key.NewBinding(
+				key.WithKeys("ctrl+c"),
+				key.WithHelp("ctrl+c", "quit"),
+			),
+		},
 	}
 }
 
-func travel(target *tview.TreeNode) {
-	var info = target.GetReference().(*DiskExplorer.DiskInfo)
-	if len(info.Children) == len(target.GetChildren()) {
-		return
-	}
-
-	target.ClearChildren()
-	for i, child := range info.Children {
-		var node = tview.
-			NewTreeNode("").
-			SetReference(&info.Children[i]).
-			SetSelectable(child.IsDir)
-
-		node.SetExpanded(false)
-		target.AddChild(node)
-	}
+func (s *SpaceCrawler) Init() tea.Cmd {
+	return nil
 }
 
-func expand(target *tview.TreeNode) {
-	target.GetReference().(*DiskExplorer.DiskInfo).Expand()
-	travel(target)
-
-	for _, node := range target.GetChildren() {
-		if node.GetReference().(*DiskExplorer.DiskInfo).IsDir {
-			go expand(node)
+func (s *SpaceCrawler) Update(msg tea.Msg) (model tea.Model, cmd tea.Cmd) {
+	switch event := msg.(type) {
+	case tea.KeyMsg:
+		switch event.String() {
+		case "ctrl+c":
+			return s, tea.Quit
+		default:
+			s.body, cmd = s.body.Update(msg)
+			return s, cmd
 		}
+	case cursor.BlinkMsg:
+		s.body, cmd = s.body.Update(msg)
+		return s, cmd
+	default:
+		return s, nil
 	}
+}
+
+func (s *SpaceCrawler) View() string {
+	return "Hello, World!\n" + s.body.View() + "\n" + s.help.View(s.keys)
 }
 
 func main() {
-	var app = tview.NewApplication()
-	app.EnableMouse(true).EnablePaste(false)
-
-	var disk = DiskExplorer.Map(".")
-
-	// var header = tview.NewFlex().SetDirection(tview.FlexColumn).
-	// 	AddItem(
-	// 		tview.NewTextView().SetText("Search: "), 8, 1, false,
-	// 	).
-	// 	AddItem(
-	// 		tview.NewTextArea().SetText("HERE", true), 0, 1, true,
-	// 	)
-	//
-	// var text = tview.NewTextView().
-	// 	SetDynamicColors(true).
-	// 	SetRegions(true).
-	// 	SetWrap(false)
-
-	var root = tview.NewTreeNode(disk.Path).SetColor(tcell.ColorRed).SetReference(&disk)
-	var tree = tview.NewTreeView().SetRoot(root).SetCurrentNode(root)
-	tree.SetBorder(true).SetTitle("Files")
-	app.SetRoot(tree, true)
-
-	// var box = tview.NewFlex().
-	// 	SetDirection(tview.FlexRow).
-	// 	AddItem(header, 1, 1, false).
-	// 	AddItem(tree, 0, 1, true).
-	// 	AddItem(text, 1, 1, false)
-	// app.SetRoot(box, true)
-
-	setNodeInfo(root)
-	go expand(root)
-
-	go func() {
-		for {
-			time.Sleep(100 * time.Millisecond)
-
-			var explored = disk.Explored()
-			app.QueueUpdateDraw(
-				func() {
-					update(root)
-				},
-			)
-
-			if explored {
-				return
-			}
-		}
-	}()
-
-	tree.SetSelectedFunc(
-		func(node *tview.TreeNode) {
-			var info = node.GetReference().(*DiskExplorer.DiskInfo)
-			if info == &disk {
-				return
-			}
-
-			if info.Expand() {
-				travel(node)
-				node.SetExpanded(true)
-			} else {
-				node.SetExpanded(!node.IsExpanded())
-			}
-		},
+	var (
+		model = NewSpaceCrawler()
+		app   = tea.NewProgram(model, tea.WithAltScreen(), tea.WithFPS(30))
 	)
 
-	app.SetInputCapture(
-		func(event *tcell.EventKey) *tcell.EventKey {
-			switch event.Rune() {
-			case 'q', 'Q':
-				app.Stop()
-				return nil
-			}
-
-			return event
-		},
-	)
-
-	if err := app.Run(); err != nil {
+	if _, err := app.Run(); err != nil {
 		panic(err)
 	}
 }
