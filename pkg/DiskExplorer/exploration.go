@@ -9,25 +9,28 @@ import (
 // This will list out all the contents of the given directory and no more
 // Call DiskInfo.Deepen to map out the lower layers of the tree
 // Use DiskInfo.Expand to expand specific nodes
-func Map(path string) (directory DiskInfo) {
+func Map(path string) (d DiskInfo) {
+	// Set Info name
 	var abs, _ = filepath.Abs(path)
-	var info, _ = os.Stat(abs)
-
-	directory = DiskInfo{
-		Path:     abs,
-		Name:     filepath.Base(abs),
-		IsDir:    info.IsDir(),
-		Children: nil,
-		Mode:     info.Mode(),
-
-		size: 0,
+	d = DiskInfo{
+		Path: abs,
+		Name: filepath.Base(abs),
 	}
 
-	directory.explore()
+	// Grab metadata from disk
+	var info, err = os.Stat(abs)
+	if err != nil {
+		d.denied = true
+		return
+	}
+
+	d.IsDir = info.IsDir()
+	d.Mode = info.Mode()
+	d.explore()
 	return
 }
 
-// explore will iterate over the directory and calculate its size
+// explore will iterate over the directory and list out subfolders and files
 func (d *DiskInfo) explore() {
 	d.Children = []DiskInfo{}
 
