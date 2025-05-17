@@ -30,6 +30,21 @@ func New(root string) (v View) {
 	var node = tview.NewTreeNode(v.disk.Path).SetReference(&v.disk)
 	setNodeInfo(node)
 	v.tree.SetRoot(node)
+	v.tree.SetSelectedFunc(
+		func(node *tview.TreeNode) {
+			var info = node.GetReference().(*DiskExplorer.DiskInfo)
+			if info == &v.disk {
+				return
+			}
+
+			if info.Expand() {
+				travel(node)
+				node.SetExpanded(true)
+			} else {
+				node.SetExpanded(!node.IsExpanded())
+			}
+		},
+	)
 
 	return v
 }
