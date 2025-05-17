@@ -22,9 +22,10 @@ type View struct {
 // New returns a new instance of the DiskView
 func New(root string) (v View) {
 	v = View{
-		disk:    DiskExplorer.Map(root),
-		tree:    tview.NewTreeView(),
-		syncing: &atomic.Bool{},
+		disk:     DiskExplorer.Map(root),
+		tree:     tview.NewTreeView(),
+		syncing:  &atomic.Bool{},
+		OnUpdate: func() {},
 	}
 
 	var node = tview.NewTreeNode(v.disk.Path).SetReference(&v.disk)
