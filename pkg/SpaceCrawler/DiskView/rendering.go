@@ -1,6 +1,7 @@
 package DiskView
 
 import (
+	"sort"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -32,6 +33,7 @@ func update(node *tview.TreeNode) {
 	for _, child := range node.GetChildren() {
 		update(child)
 	}
+	sortNodeInfo(node)
 }
 
 // setNodeInfo will add the information to the node for rendering
@@ -51,4 +53,17 @@ func setNodeInfo(node *tview.TreeNode) {
 	default:
 		node.SetColor(tcell.ColorRed)
 	}
+}
+
+// sortNodeInfo will sort the node information
+func sortNodeInfo(node *tview.TreeNode) {
+	var children = node.GetChildren()
+	sort.Slice(
+		children, func(i, j int) bool {
+			var a = children[i].GetReference().(*DiskExplorer.DiskInfo)
+			var b = children[j].GetReference().(*DiskExplorer.DiskInfo)
+			return a.Size() > b.Size()
+		},
+	)
+	node.SetChildren(children)
 }
