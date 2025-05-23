@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/minoxs/SpaceCrawler/pkg/DiskExplorer"
 )
@@ -21,8 +22,12 @@ func main() {
 		var i = 0
 		for {
 			i += 1
+			log.Println("Starting", i)
 			dir.Deepen()
+			log.Println("Rendering", i)
+			dir.Render(os.Stdout)
 			log.Println("Exploration done", i)
+			time.Sleep(5 * time.Second)
 			select {
 			case <-cancel:
 				ready <- true
@@ -44,5 +49,5 @@ func main() {
 	}
 
 	log.SetOutput(os.Stdout)
-	log.Println("\n", dir.Render())
+	dir.Render(os.Stdout)
 }
