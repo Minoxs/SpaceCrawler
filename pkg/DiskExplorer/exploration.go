@@ -3,6 +3,7 @@ package DiskExplorer
 import (
 	"os"
 	"path/filepath"
+	"sync"
 )
 
 // Map returns the disk info for a particular directory
@@ -82,8 +83,14 @@ func (d *DiskInfo) Expand() bool {
 // Deepen will deepen the exploration by 1 layer
 func (d *DiskInfo) Deepen() {
 	if !d.Expand() {
+		var wg = sync.WaitGroup{}
 		for i := 0; i < len(d.Children); i++ {
-			d.Children[i].Deepen()
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				d.Children[i].Deepen()
+			}(i)
 		}
+		wg.Wait()
 	}
 }
