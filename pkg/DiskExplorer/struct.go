@@ -18,6 +18,11 @@ type DiskInfo struct {
 
 // Explored will recursively check if the node is explored
 func (d *DiskInfo) Explored() bool {
+	// Denied files are explored by default
+	if d.denied {
+		return true
+	}
+
 	// Files are explored by default
 	if !d.IsDir {
 		return true

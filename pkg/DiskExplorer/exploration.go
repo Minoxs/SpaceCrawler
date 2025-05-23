@@ -24,8 +24,14 @@ func Map(path string) (d DiskInfo) {
 		return
 	}
 
+	const InvalidFile = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
 	d.IsDir = info.IsDir()
 	d.Mode = info.Mode()
+	d.denied = d.Mode.Type()&InvalidFile != 0
+	if d.denied {
+		return
+	}
+
 	d.explore()
 	return
 }
