@@ -1,6 +1,7 @@
 package DiskExplorer
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"sync"
@@ -78,6 +79,26 @@ func (d *DiskInfo) Expand() bool {
 
 	d.explore()
 	return true
+}
+
+// Exhaust will expand every single node without stopping
+// A context can be passed into this function to cancel out of it early
+func (d *DiskInfo) Exhaust(ctx context.Context) {
+	if ctx.Err() != nil {
+		return
+	}
+
+	d.Expand()
+
+	var wg = sync.WaitGroup{}
+	for i := 0; i < len(d.Children); i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			d.Children[i].Exhaust(ctx)
+		}(i)
+	}
+	wg.Wait()
 }
 
 // Deepen will deepen the exploration by 1 layer

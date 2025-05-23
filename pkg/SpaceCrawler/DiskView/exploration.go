@@ -8,12 +8,12 @@ import (
 
 // expand will recursively expand the folder to find every sub-folder and file in the tree
 func expand(target *tview.TreeNode) {
-	target.GetReference().(*DiskExplorer.DiskInfo).Expand()
+	// target.GetReference().(*DiskExplorer.DiskInfo).Expand()
 	travel(target)
 
 	for _, node := range target.GetChildren() {
 		if node.GetReference().(*DiskExplorer.DiskInfo).IsDir {
-			go expand(node)
+			expand(node)
 		}
 	}
 }

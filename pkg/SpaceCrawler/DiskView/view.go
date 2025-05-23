@@ -54,8 +54,14 @@ func New(root string) (v View) {
 
 // Expand will iterate recursively over the folder
 func (v *View) Expand() {
-	go v.synchronize()
-	expand(v.tree.GetRoot())
+	// go v.synchronize()
+	// expand(v.tree.GetRoot())
+	for !v.disk.Explored() {
+		v.disk.Deepen()
+		expand(v.tree.GetRoot())
+		update(v.tree.GetRoot())
+		v.OnUpdate()
+	}
 }
 
 // Model returns the model for rendering by tview
