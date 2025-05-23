@@ -30,6 +30,8 @@ func New(root string) (v View) {
 
 	var node = tview.NewTreeNode(v.disk.Path).SetReference(&v.disk)
 	setNodeInfo(node)
+
+	v.tree.SetBorder(true).SetTitle("Files")
 	v.tree.SetRoot(node)
 	v.tree.SetSelectedFunc(
 		func(node *tview.TreeNode) {
