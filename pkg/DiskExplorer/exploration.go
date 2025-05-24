@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 // Map returns the disk info for a particular directory
@@ -84,28 +85,14 @@ func (d *DiskInfo) Expand() bool {
 // Exhaust will expand every single node without stopping
 // A context can be passed into this function to cancel out of it early
 func (d *DiskInfo) Exhaust(ctx context.Context) {
-	if ctx.Err() != nil {
-		return
+	var scheduler = NewScheduler(5000)
+	d.exhaust(ctx, scheduler)
+	for !d.Explored() {
+		time.Sleep(10 * time.Millisecond)
 	}
-
-	d.Expand()
-
-	var wg = sync.WaitGroup{}
-	for i := 0; i < len(d.Children); i++ {
-		if !d.Children[i].IsDir {
-			continue
-		}
-
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
-			d.Children[i].exhaust(ctx)
-		}(i)
-	}
-	wg.Wait()
 }
 
-func (d *DiskInfo) exhaust(ctx context.Context) {
+func (d *DiskInfo) exhaust(ctx context.Context, scheduler *Scheduler) {
 	if ctx.Err() != nil {
 		return
 	}
@@ -115,7 +102,13 @@ func (d *DiskInfo) exhaust(ctx context.Context) {
 		if !d.Children[i].IsDir {
 			continue
 		}
-		d.Children[i].exhaust(ctx)
+
+		i := i
+		scheduler.Go(
+			func() {
+				d.Children[i].exhaust(ctx, scheduler)
+			},
+		)
 	}
 }
 
