@@ -92,13 +92,31 @@ func (d *DiskInfo) Exhaust(ctx context.Context) {
 
 	var wg = sync.WaitGroup{}
 	for i := 0; i < len(d.Children); i++ {
+		if !d.Children[i].IsDir {
+			continue
+		}
+
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			d.Children[i].Exhaust(ctx)
+			d.Children[i].exhaust(ctx)
 		}(i)
 	}
 	wg.Wait()
+}
+
+func (d *DiskInfo) exhaust(ctx context.Context) {
+	if ctx.Err() != nil {
+		return
+	}
+
+	d.Expand()
+	for i := 0; i < len(d.Children); i++ {
+		if !d.Children[i].IsDir {
+			continue
+		}
+		d.Children[i].exhaust(ctx)
+	}
 }
 
 // Deepen will deepen the exploration by 1 layer
@@ -106,6 +124,10 @@ func (d *DiskInfo) Deepen() {
 	if !d.Expand() {
 		var wg = sync.WaitGroup{}
 		for i := 0; i < len(d.Children); i++ {
+			if !d.Children[i].IsDir {
+				continue
+			}
+
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
