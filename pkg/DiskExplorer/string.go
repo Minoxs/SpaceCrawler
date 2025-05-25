@@ -2,6 +2,8 @@ package DiskExplorer
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"strings"
 )
 
@@ -36,20 +38,22 @@ func (d *DiskInfo) String() string {
 	return fmt.Sprintf("%s %s %s %s", d.FullPrefix(), d.Mode, d.HumanSize(), d.Name)
 }
 
-// Render will return a string with the file tree representation
-func (d *DiskInfo) Render() string {
-	return d.stringDepth(1)
+// Render renders the disk info into the given writer
+func (d *DiskInfo) Render(writer io.Writer) {
+	d.renderDepth(writer, 0)
 }
 
-// stringDepth will recursively build the file tree representation
-func (d *DiskInfo) stringDepth(depth int) (str string) {
-	str = d.String() + "\n"
-
-	for _, child := range d.Children {
-		str += strings.Repeat("\t", depth) + child.stringDepth(depth+1)
+// renderDepth will recursively build the file tree representation
+func (d *DiskInfo) renderDepth(writer io.Writer, depth int) {
+	var rep = strings.Repeat("\t", depth) + d.String() + "\n"
+	var _, err = writer.Write([]byte(rep))
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	return
+	for _, child := range d.Children {
+		child.renderDepth(writer, depth+1)
+	}
 }
 
 // HumanSize returns the size in a human-readable format

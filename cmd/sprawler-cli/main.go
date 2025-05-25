@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"os/signal"
@@ -13,36 +14,30 @@ func main() {
 	var dir = DiskExplorer.Map(".")
 	log.Println("\n", dir.String())
 
+	var ctx, cancelFunc = context.WithCancel(context.Background())
 	var ready = make(chan bool)
-	var cancel = make(chan os.Signal, 1)
-	signal.Notify(cancel, syscall.SIGINT, syscall.SIGTERM)
+	var interrupt = make(chan os.Signal, 1)
+	signal.Notify(interrupt, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		var i = 0
-		for {
-			i += 1
-			dir.Deepen()
-			log.Println("Exploration done", i)
-			select {
-			case <-cancel:
-				ready <- true
-				return
-			default:
-				if dir.Explored() {
-					ready <- true
-					return
-				}
-			}
-		}
+		log.Println("Starting Walk")
+		dir.BreadthSearch(ctx)
+		ready <- true
 	}()
 
-	<-ready
+	select {
+	case <-ready:
+		log.Println("Ready")
+	case <-interrupt:
+		log.Println("Canceled")
+		cancelFunc()
+	}
+
 	if dir.Explored() {
 		log.Println("Fully explored")
 	} else {
 		log.Println("Partial analysis")
 	}
 
-	log.SetOutput(os.Stdout)
-	log.Println("\n", dir.Render())
+	dir.Render(os.Stdout)
 }

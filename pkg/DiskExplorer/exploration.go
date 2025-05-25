@@ -9,54 +9,31 @@ import (
 // This will list out all the contents of the given directory and no more
 // Call DiskInfo.Deepen to map out the lower layers of the tree
 // Use DiskInfo.Expand to expand specific nodes
-func Map(path string) (directory DiskInfo) {
+func Map(path string) (d DiskInfo) {
+	// Set Info name
 	var abs, _ = filepath.Abs(path)
-	var info, _ = os.Stat(abs)
-
-	directory = DiskInfo{
-		Path:     abs,
-		Name:     filepath.Base(abs),
-		IsDir:    info.IsDir(),
-		Children: nil,
-		Mode:     info.Mode(),
-
-		size: 0,
+	d = DiskInfo{
+		Path: abs,
+		Name: filepath.Base(abs),
 	}
 
-	directory.explore()
-	return
-}
-
-// explore will iterate over the directory and calculate its size
-func (d *DiskInfo) explore() {
-	d.Children = []DiskInfo{}
-
-	var files, err = os.ReadDir(d.Path)
+	// Grab metadata from disk
+	var info, err = os.Stat(abs)
 	if err != nil {
 		d.denied = true
 		return
 	}
 
-	for _, file := range files {
-		var info, _ = file.Info()
-
-		var child = DiskInfo{
-			Path:     filepath.Join(d.Path, file.Name()),
-			Name:     file.Name(),
-			IsDir:    file.IsDir(),
-			Children: nil,
-			Mode:     info.Mode(),
-
-			size: uint64(info.Size()),
-		}
-
-		d.addChild(child)
+	const InvalidFile = os.ModeSymlink | os.ModeNamedPipe | os.ModeSocket | os.ModeDevice | os.ModeCharDevice | os.ModeIrregular
+	d.IsDir = info.IsDir()
+	d.Mode = info.Mode()
+	d.denied = d.Mode.Type()&InvalidFile != 0
+	if d.denied {
+		return
 	}
-}
 
-// addChild adds appends a new child to the end of the tree
-func (d *DiskInfo) addChild(child DiskInfo) {
-	d.Children = append(d.Children, child)
+	d.explore()
+	return
 }
 
 // Expand will explore a given node and populate its children
@@ -70,11 +47,30 @@ func (d *DiskInfo) Expand() bool {
 	return true
 }
 
-// Deepen will deepen the exploration by 1 layer
-func (d *DiskInfo) Deepen() {
-	if !d.Expand() {
-		for i := 0; i < len(d.Children); i++ {
-			d.Children[i].Deepen()
-		}
+// explore will iterate over the directory and list out subfolders and files
+func (d *DiskInfo) explore() {
+	var files, err = os.ReadDir(d.Path)
+	if err != nil {
+		d.denied = true
+		return
 	}
+
+	var tmp = make([]DiskInfo, len(files))
+	for i, file := range files {
+		var info, _ = file.Info()
+
+		var child = DiskInfo{
+			Path:     filepath.Join(d.Path, file.Name()),
+			Name:     file.Name(),
+			IsDir:    file.IsDir(),
+			Children: nil,
+			Mode:     info.Mode(),
+
+			size: uint64(info.Size()),
+		}
+
+		tmp[i] = child
+	}
+
+	d.Children = tmp
 }
