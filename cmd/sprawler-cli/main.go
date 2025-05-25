@@ -21,7 +21,7 @@ func main() {
 
 	go func() {
 		log.Println("Starting Walk")
-		dir.Exhaust(ctx)
+		dir.BreadthSearch(ctx)
 		ready <- true
 	}()
 

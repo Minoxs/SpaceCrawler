@@ -1,32 +1,29 @@
 package DiskExplorer
 
+import (
+	"time"
+)
+
 type semaphore struct {
-	sem chan struct{}
+	forks chan struct{}
+}
+
+func newSemaphore(max int) *semaphore {
+	return &semaphore{
+		forks: make(chan struct{}, max),
+	}
 }
 
 func (s *semaphore) Acquire() {
-	s.sem <- struct{}{}
+	s.forks <- struct{}{}
 }
 
 func (s *semaphore) Release() {
-	<-s.sem
+	<-s.forks
 }
 
-type Scheduler struct {
-	sem semaphore
-}
-
-func NewScheduler(max int) (scheduler *Scheduler) {
-	scheduler = &Scheduler{
-		sem: semaphore{make(chan struct{}, max)},
+func (s *semaphore) Wait() {
+	for len(s.forks) > 0 {
+		time.Sleep(100 * time.Millisecond)
 	}
-	return
-}
-
-func (s *Scheduler) Go(f func()) {
-	s.sem.Acquire()
-	go func(f func()) {
-		defer s.sem.Release()
-		f()
-	}(f)
 }

@@ -56,7 +56,7 @@ func New(root string) (v View) {
 
 // Expand will iterate recursively over the folder
 func (v *View) Expand() {
-	go v.disk.Exhaust(context.Background())
+	go v.disk.BreadthSearch(context.Background())
 	for !v.disk.Explored() {
 		expand(v.tree.GetRoot())
 		update(v.tree.GetRoot())
