@@ -49,15 +49,14 @@ func (d *DiskInfo) Expand() bool {
 
 // explore will iterate over the directory and list out subfolders and files
 func (d *DiskInfo) explore() {
-	d.Children = []DiskInfo{}
-
 	var files, err = os.ReadDir(d.Path)
 	if err != nil {
 		d.denied = true
 		return
 	}
 
-	for _, file := range files {
+	var tmp = make([]DiskInfo, len(files))
+	for i, file := range files {
 		var info, _ = file.Info()
 
 		var child = DiskInfo{
@@ -70,6 +69,8 @@ func (d *DiskInfo) explore() {
 			size: uint64(info.Size()),
 		}
 
-		d.Children = append(d.Children, child)
+		tmp[i] = child
 	}
+
+	d.Children = tmp
 }
