@@ -1,6 +1,7 @@
 package DiskView
 
 import (
+	"context"
 	"sort"
 	"time"
 
@@ -11,35 +12,54 @@ import (
 )
 
 // synchronize will keep the model updated as new files are discovered
-func (v *View) synchronize() {
-	if v.syncing.CompareAndSwap(false, true) {
-		for {
-			var explored = v.disk.Explored()
-			update(v.tree.GetRoot())
-			v.OnUpdate()
-			if explored {
-				break
-			}
-			time.Sleep(250 * time.Millisecond)
-		}
-
-		v.syncing.Store(false)
+func (v *View) synchronize(ctx context.Context) {
+	for ctx.Err() == nil {
+		time.Sleep(100 * time.Millisecond)
+		update(v.tree.GetRoot())
+		v.OnUpdate()
 	}
+	update(v.tree.GetRoot())
+	v.OnUpdate()
 }
 
 // update will update node information
 func update(node *tview.TreeNode) {
 	setNodeInfo(node)
+	if !node.IsExpanded() {
+		return
+	}
+
+	setChildren(node)
 	for _, child := range node.GetChildren() {
 		update(child)
 	}
 	sortNodeInfo(node)
 }
 
+// setChildren updates a node's children
+func setChildren(target *tview.TreeNode) {
+	var info = target.GetReference().(*DiskExplorer.DiskInfo)
+	if len(info.Children) == len(target.GetChildren()) {
+		return
+	}
+
+	target.ClearChildren()
+	for i, child := range info.Children {
+		var node = tview.
+			NewTreeNode("").
+			SetReference(&info.Children[i]).
+			SetSelectable(child.IsDir)
+
+		node.SetExpanded(false)
+		target.AddChild(node)
+	}
+}
+
 // setNodeInfo will add the information to the node for rendering
 func setNodeInfo(node *tview.TreeNode) {
 	var info = node.GetReference().(*DiskExplorer.DiskInfo)
 
+	// Set node text
 	node.SetText(info.String())
 
 	// Color switch

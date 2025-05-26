@@ -3,7 +3,6 @@ package DiskView
 import (
 	"context"
 	"sync/atomic"
-	"time"
 
 	"github.com/rivo/tview"
 
@@ -42,30 +41,27 @@ func New(root string) (v View) {
 				return
 			}
 
-			if info.Expand() {
-				travel(node)
-				node.SetExpanded(true)
-			} else {
-				node.SetExpanded(!node.IsExpanded())
-			}
+			var expanded = node.IsExpanded()
+			node.SetExpanded(!expanded)
+			update(node)
 		},
 	)
 
 	return v
 }
 
-// Expand will iterate recursively over the folder
-func (v *View) Expand() {
-	go v.disk.BreadthSearch(context.Background())
-	for !v.disk.Explored() {
-		expand(v.tree.GetRoot())
-		update(v.tree.GetRoot())
-		v.OnUpdate()
-		time.Sleep(100 * time.Millisecond)
+// Expand will keep the view updated
+func (v *View) Expand(ctx context.Context) {
+	if !v.syncing.CompareAndSwap(false, true) {
+		return
 	}
-	expand(v.tree.GetRoot())
-	update(v.tree.GetRoot())
-	v.OnUpdate()
+	defer v.syncing.Store(false)
+
+	var inner, cancel = context.WithCancel(ctx)
+	defer cancel()
+
+	go v.synchronize(inner)
+	v.disk.BreadthSearch(inner)
 }
 
 // Model returns the model for rendering by tview
