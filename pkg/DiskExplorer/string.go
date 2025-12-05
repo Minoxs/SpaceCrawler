@@ -27,9 +27,9 @@ func (d *DiskInfo) Prefix() string {
 // FullPrefix returns the Prefix including Depth and Breadth information
 func (d *DiskInfo) FullPrefix() (s string) {
 	if d.IsDir {
-		return d.Prefix() + fmt.Sprintf(" D%d B%d", d.Depth(), d.Breadth())
+		return d.Prefix() + fmt.Sprintf(" D%02d B%03d", d.Depth(), d.Breadth())
 	} else {
-		return d.Prefix()
+		return d.Prefix() + strings.Repeat(" ", 2+3+4)
 	}
 }
 

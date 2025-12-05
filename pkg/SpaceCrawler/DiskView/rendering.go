@@ -18,6 +18,8 @@ func (v *View) synchronize(ctx context.Context) {
 		update(v.tree.GetRoot())
 		v.OnUpdate()
 	}
+
+	time.Sleep(100 * time.Millisecond)
 	update(v.tree.GetRoot())
 	v.OnUpdate()
 }

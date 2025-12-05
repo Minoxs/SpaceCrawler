@@ -7,7 +7,7 @@ import (
 
 // Map returns the disk info for a particular directory
 // This will list out all the contents of the given directory and no more
-// Call DiskInfo.Deepen to map out the lower layers of the tree
+// Call DiskInfo.BreadthSearch to map out the lower layers of the tree
 // Use DiskInfo.Expand to expand specific nodes
 func Map(path string) (d DiskInfo) {
 	// Set Info name
