@@ -46,7 +46,7 @@ func (d *DiskInfo) FullPrefix() (s string) {
 		tWidth = 0
 	)
 	if d.Parent != nil {
-		dWidth = lenLoop10(d.Parent.Depth())
+		dWidth = lenLoop10(d.Parent.CachedDepth())
 		bWidth = lenLoop10(d.Parent.MaxChildBreadth())
 		tWidth = lenLoop10(d.Parent.MaxChildTotalFiles())
 	}
@@ -55,11 +55,11 @@ func (d *DiskInfo) FullPrefix() (s string) {
 		return d.Prefix() + fmt.Sprintf(
 			" D%0*d B%0*d T%0*d",
 			dWidth,
-			d.Depth(),
+			d.CachedDepth(),
 			bWidth,
-			d.Breadth(),
+			d.CachedBreath(),
 			tWidth,
-			d.TotalFiles(),
+			d.CachedTotalFiles(),
 		)
 	} else {
 		return d.Prefix() + strings.Repeat(" ", 3+3+dWidth+bWidth+tWidth)
@@ -68,9 +68,8 @@ func (d *DiskInfo) FullPrefix() (s string) {
 
 // String returns a string representation of the node
 func (d *DiskInfo) String() string {
-	// Ensure size is up to date
-	d.Size()
-
+	// Ensure cache is up to date
+	d.UpdateCache()
 	return fmt.Sprintf("%s %s %s %5.2f%% %s", d.FullPrefix(), d.Mode, d.HumanSize(), d.PercentSize(), d.Name)
 }
 

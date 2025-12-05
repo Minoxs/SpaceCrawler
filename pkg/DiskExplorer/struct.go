@@ -14,6 +14,8 @@ type DiskInfo struct {
 	Mode     os.FileMode
 
 	size   uint64
+	depth  int
+	total  int
 	denied bool
 }
 
@@ -75,6 +77,8 @@ func (d *DiskInfo) Depth() int {
 	for i := 0; i < len(d.Children); i++ {
 		deep = max(deep, d.Children[i].Depth())
 	}
+
+	d.depth = 1 + deep
 	return 1 + deep
 }
 
@@ -83,30 +87,14 @@ func (d *DiskInfo) Breadth() int {
 	return len(d.Children)
 }
 
-// MaxChildBreadth calculates the maximum bread of a child node
-func (d *DiskInfo) MaxChildBreadth() int {
-	var breadth = 0
-	for i := 0; i < len(d.Children); i++ {
-		breadth = max(breadth, d.Children[i].Breadth())
-	}
-	return breadth
-}
-
 // TotalFiles counts the total number of files under a given node
 func (d *DiskInfo) TotalFiles() int {
 	var total = d.Breadth()
 	for i := 0; i < len(d.Children); i++ {
 		total += d.Children[i].TotalFiles()
 	}
-	return total
-}
 
-// MaxChildTotalFiles counts the total number of files under a given node
-func (d *DiskInfo) MaxChildTotalFiles() int {
-	var total = 0
-	for i := 0; i < len(d.Children); i++ {
-		total = max(total, d.Children[i].TotalFiles())
-	}
+	d.total = total
 	return total
 }
 
