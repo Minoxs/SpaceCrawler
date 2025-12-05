@@ -12,7 +12,7 @@ import (
 // View is the exported component for the DiskView
 // Contains every method required to render out a folder
 type View struct {
-	disk    DiskExplorer.DiskInfo
+	disk    *DiskExplorer.DiskInfo
 	tree    *tview.TreeView
 	syncing *atomic.Bool
 
@@ -29,7 +29,7 @@ func New(root string) (v View) {
 		OnUpdate: func() {},
 	}
 
-	var node = tview.NewTreeNode(v.disk.Path).SetReference(&v.disk)
+	var node = tview.NewTreeNode(v.disk.Path).SetReference(v.disk)
 	setNodeInfo(node)
 
 	v.tree.SetBorder(true).SetTitle("Files")
@@ -37,7 +37,7 @@ func New(root string) (v View) {
 	v.tree.SetSelectedFunc(
 		func(node *tview.TreeNode) {
 			var info = node.GetReference().(*DiskExplorer.DiskInfo)
-			if info == &v.disk {
+			if info == v.disk {
 				return
 			}
 

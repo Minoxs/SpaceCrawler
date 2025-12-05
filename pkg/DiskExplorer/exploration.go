@@ -9,10 +9,10 @@ import (
 // This will list out all the contents of the given directory and no more
 // Call DiskInfo.BreadthSearch to map out the lower layers of the tree
 // Use DiskInfo.Expand to expand specific nodes
-func Map(path string) (d DiskInfo) {
+func Map(path string) (d *DiskInfo) {
 	// Set Info name
 	var abs, _ = filepath.Abs(path)
-	d = DiskInfo{
+	d = &DiskInfo{
 		Path: abs,
 		Name: filepath.Base(abs),
 	}

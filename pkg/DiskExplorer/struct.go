@@ -9,6 +9,7 @@ type DiskInfo struct {
 	Path     string
 	Name     string
 	IsDir    bool
+	Parent   *DiskInfo
 	Children []DiskInfo
 	Mode     os.FileMode
 
