@@ -24,12 +24,45 @@ func (d *DiskInfo) Prefix() string {
 	}
 }
 
+// lenLoop10 is a helper function to quickly calculate integer string length
+// https://stackoverflow.com/a/68124773
+func lenLoop10(i int) int {
+	if i >= 1e18 {
+		return 19
+	}
+	x, count := 10, 1
+	for x <= i {
+		x *= 10
+		count++
+	}
+	return count
+}
+
 // FullPrefix returns the Prefix including Depth and Breadth information
 func (d *DiskInfo) FullPrefix() (s string) {
+	var (
+		dWidth = 0
+		bWidth = 0
+		tWidth = 0
+	)
+	if d.Parent != nil {
+		dWidth = lenLoop10(d.Parent.Depth())
+		bWidth = lenLoop10(d.Parent.MaxChildBreadth())
+		tWidth = lenLoop10(d.Parent.MaxChildTotalFiles())
+	}
+
 	if d.IsDir {
-		return d.Prefix() + fmt.Sprintf(" D%02d B%03d", d.Depth(), d.Breadth())
+		return d.Prefix() + fmt.Sprintf(
+			" D%0*d B%0*d T%0*d",
+			dWidth,
+			d.Depth(),
+			bWidth,
+			d.Breadth(),
+			tWidth,
+			d.TotalFiles(),
+		)
 	} else {
-		return d.Prefix() + strings.Repeat(" ", 2+3+4)
+		return d.Prefix() + strings.Repeat(" ", 3+3+dWidth+bWidth+tWidth)
 	}
 }
 
