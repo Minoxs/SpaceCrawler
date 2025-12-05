@@ -63,6 +63,7 @@ func (d *DiskInfo) explore() {
 			Path:     filepath.Join(d.Path, file.Name()),
 			Name:     file.Name(),
 			IsDir:    file.IsDir(),
+			Parent:   d,
 			Children: nil,
 			Mode:     info.Mode(),
 

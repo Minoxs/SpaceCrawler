@@ -52,15 +52,17 @@ func (d *DiskInfo) Expanded() bool {
 // Size will recursively calculate the size of the node for directories
 // File size is cached
 func (d *DiskInfo) Size() uint64 {
-	if d.IsDir {
-		var size = uint64(0)
-		for i := 0; i < len(d.Children); i++ {
-			size += d.Children[i].Size()
-		}
-		return size
-	} else {
+	if !d.IsDir {
 		return d.size
 	}
+
+	var size = uint64(0)
+	for i := 0; i < len(d.Children); i++ {
+		size += d.Children[i].Size()
+	}
+
+	d.size = size
+	return size
 }
 
 // Depth calculates the maximum depth of a given node

@@ -35,7 +35,10 @@ func (d *DiskInfo) FullPrefix() (s string) {
 
 // String returns a string representation of the node
 func (d *DiskInfo) String() string {
-	return fmt.Sprintf("%s %s %s %s", d.FullPrefix(), d.Mode, d.HumanSize(), d.Name)
+	// Ensure size is up to date
+	d.Size()
+
+	return fmt.Sprintf("%s %s %s %5.2f%% %s", d.FullPrefix(), d.Mode, d.HumanSize(), d.PercentSize(), d.Name)
 }
 
 // Render renders the disk info into the given writer
@@ -57,17 +60,33 @@ func (d *DiskInfo) renderDepth(writer io.Writer, depth int) {
 }
 
 // HumanSize returns the size in a human-readable format
+// Call Size before this to ensure the value is up to date
 func (d *DiskInfo) HumanSize() string {
-	var s = float64(d.Size())
+	var s = float64(d.CachedSize())
 
 	var (
 		idx  = 0
 		unit = []string{"B", "Kb", "Mb", "Gb", "Tb", "Pb"}
 	)
 
-	for ; s > 1024 && idx < len(unit); idx++ {
+	for ; s > 1024 && idx < len(unit)-1; idx++ {
 		s /= 1024
 	}
 
-	return fmt.Sprintf("%.2f%s", s, unit[idx])
+	var pad = ""
+	if idx == 0 {
+		pad = " "
+	}
+
+	return fmt.Sprintf("%6.2f%s", s, unit[idx]) + pad
+}
+
+// PercentSize calculates the percentage of the current node's size compared to its parent
+// Call Size before this to ensure the value is up to date
+func (d *DiskInfo) PercentSize() float64 {
+	if d.Parent == nil {
+		return 100
+	}
+
+	return 100 * float64(d.CachedSize()) / float64(d.Parent.CachedSize())
 }
